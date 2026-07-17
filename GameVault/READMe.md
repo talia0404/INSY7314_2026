@@ -62,7 +62,6 @@ We'll introduce users and secure access to the application.
 
 New features include:
 
-* MongoDB database
 * User registration
 * Login
 * Password hashing
@@ -70,6 +69,7 @@ New features include:
 * Role-Based Access Control (RBAC)
 * Protected API routes
 * Rate limiting
+* MongoDB database
 
 Different users will have different permissions, ensuring that only authorised users can manage games and reviews.
 
