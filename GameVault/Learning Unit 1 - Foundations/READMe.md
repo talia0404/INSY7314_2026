@@ -7,6 +7,6 @@ Follow the steps:
 
 
 
-**Group 1: To be complete by 23 July
+**Group 1: To be complete by 23 July**
 
-Group 2: To be complete by 21 July**
+**Group 2: To be complete by 21 July**
