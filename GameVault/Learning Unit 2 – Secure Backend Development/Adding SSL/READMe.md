@@ -31,43 +31,12 @@ Spend 10–15 minutes researching the following:
 
 ## ⚙️ Setting Up SSL for Local Development
 
-### Step 1: Create the OpenSSL Config File
-
-1. In your backend folder, create a new folder called `ssl`
-2. Inside `ssl`, create a file named `openssl.cnf`
-3. Paste the following content:
-
-```ini
-[req]
-distinguished_name = req_distinguished_name
-x509_extensions = v3_req
-prompt = no
-
-[req_distinguished_name]
-C = ZA
-ST = KZN
-L = Durban
-O = IIE VC
-OU = WebDev
-CN = localhost
-
-[v3_req]
-keyUsage = digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = localhost
-```
-
----
-
-### Step 2: Generate the Self-Signed Certificate and Private Key (If not done previously)
+### Step 1 and 2: Generate the Self-Signed Certificate and Private Key (If not done previously)
 
 Use **Git Bash** in your project root:
 
 ```bash
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl/privatekey.pem -out ssl/certificate.pem -config ssl/openssl.cnf -extensions v3_req
+openssl req -x509 -nodes -newkey rsa:2048 -keyout certificates/privatekey.pem -out certificates/certificate.pem -days 365 -subj "/C=ZA/ST=KwaZulu-Natal/L=Durban/O=GameVault/OU=Dev/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
 ```
 
 ✅ You should now see `privatekey.pem` and `certificate.pem` inside `backend/ssl`.
