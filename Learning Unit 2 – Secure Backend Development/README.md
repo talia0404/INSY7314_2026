@@ -4,11 +4,11 @@ We'll transform our basic server into a structured backend API.
 
 New features include:
 
+* HTTPS
 * CRUD operations for games
 * Express routing
 * Controllers
 * Middleware
-* HTTPS
 * Helmet
 * Content Security Policy (CSP)
 * CORS
