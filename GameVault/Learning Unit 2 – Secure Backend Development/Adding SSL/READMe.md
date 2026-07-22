@@ -1,5 +1,3 @@
-
-
 # 🔐 Adding SSL (HTTPS) to Your GameVault Project
 
 ## Background
@@ -29,7 +27,7 @@ Spend 10–15 minutes researching the following:
 ---
 
 
-## ⚙️ Setting Up SSL for Local Development
+## 1. ⚙️ Setting Up SSL for Local Development
 
 ### Step 1 and 2: Generate the Self-Signed Certificate and Private Key (If not done previously)
 
@@ -83,15 +81,24 @@ app.use(express.json());
 const HTTPS_PORT = process.env.HTTPS_PORT || 4000;
 const APP_NAME = process.env.APP_NAME || "GameVault API";
 
+//if any other files need to find the cert and key files, they can use these paths
 const sslKeyPath =
     process.env.SSL_KEY_PATH || "certificates/privatekey.pem";
 
 const sslCertPath =
     process.env.SSL_CERT_PATH || "certificates/certificate.pem";
 
+ //resolve the paths to the cert and key files   
+ //converting these into full paths allows the server to find them 
+ // no matter where the server is run from
 const resolvedKeyPath = path.resolve(__dirname, sslKeyPath);
 const resolvedCertPath = path.resolve(__dirname, sslCertPath);
 
+//enabled the reader
+//key receives private key file
+//cert receive the certificate file
+
+//without both of these file the server would not be able to run securely
 const httpsOptions = {
     key: fs.readFileSync(resolvedKeyPath),
     cert: fs.readFileSync(resolvedCertPath)
@@ -328,6 +335,8 @@ app.use((req, res) => {
 
 /*
 Starts the GameVault HTTPS server.
+app.listen = creates/starts a normal http server
+https.createServer = creates/starts a secure https server
 */
 https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
     console.log(
@@ -339,7 +348,7 @@ https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
 ---
 
 
-## 🧪 Testing HTTPS Locally
+## 2. 🧪 Testing HTTPS Locally
 
 Start your backend:
 
@@ -353,7 +362,7 @@ Visit:
 
 ---
 
-## 🛡️ Trusting the Certificate (Windows Only)
+## 3. 🛡️ Trusting the Certificate (Windows Only)
 
 To avoid security warnings in browsers:
 
