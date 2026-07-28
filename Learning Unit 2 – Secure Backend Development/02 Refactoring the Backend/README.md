@@ -1,31 +1,49 @@
 # 🧱 GameVault Learning Unit 2 Part A: Refactoring the Backend
 
-## Overview
+## 📌 Overview
 
-In Learning Unit 1, the complete GameVault backend was placed inside:
+In Learning Unit 1, the complete GameVault backend was written inside one file:
 
 ```text
 backend/server.js
 ```
 
-The file currently:
+The file currently performs several different jobs:
 
 * Loads environment variables.
 * Creates the Express application.
-* configures HTTPS.
-* Reads the private key and certificate.
-* Stores the temporary games collection.
-* Defines the system routes.
-* Defines the game routes.
-* Validates incoming game data.
+* enables JSON request bodies.
+* Stores the temporary game data.
+* Defines the routes.
+* Validates incoming data.
+* Creates responses.
 * Handles invalid routes.
-* Starts the HTTPS server.
+* Reads the HTTPS certificate files.
+* Creates the HTTPS server.
+* Starts the server.
 
-This was suitable while learning the foundations of Express. However, the file will become difficult to maintain as more features are added.
+The application works, but `server.js` now has too many responsibilities.
 
-In Learning Unit 2 Part A, the existing backend will be divided into smaller files and folders.
+In this section, we are going to **refactor** the backend.
 
-The refactoring must not change the public behaviour of the API. The existing endpoints must continue to work through HTTPS.
+Refactoring means:
+
+> Improving the structure of existing code without changing what the application does.
+
+The endpoints should still work exactly as before:
+
+```text
+GET  /
+GET  /about
+GET  /health
+GET  /games
+GET  /games/:id
+POST /games
+```
+
+We are not rebuilding the backend from the beginning.
+
+We are going to look at the current `server.js`, identify each section and move that section into a more suitable file.
 
 ---
 
@@ -34,174 +52,107 @@ The refactoring must not change the public behaviour of the API. The existing en
 By the end of this section, you should be able to:
 
 * Explain separation of concerns.
-* Divide an Express application into appropriate folders.
-* Separate application configuration from server startup.
+* Explain why large backend files become difficult to maintain.
+* Identify the different responsibilities inside `server.js`.
+* Move code from one file into appropriate folders.
+* Explain how files communicate using `require()` and `module.exports`.
+* Explain how a request moves through an Express application.
 * Separate routes from controllers.
-* Create reusable validation middleware.
-* Create central not-found and error-handling middleware.
-* Move temporary data into a separate module.
-* Import and export modules using CommonJS.
-* Test an application after refactoring.
-* Maintain HTTPS after reorganising a backend.
+* Separate validation from controller logic.
+* Separate Express configuration from server startup.
+* Maintain HTTPS after reorganising the backend.
+* Test the application after each refactoring step.
 
 ---
 
-# 🔍 Part 1: Understand Separation of Concerns
+# 🧠 Part 1: Understand the Goal
 
-Separation of concerns means that each file or section of an application should have one clear responsibility.
+Before refactoring, the request flow is simple:
 
-For example:
+```text
+Postman
+   ->
+server.js
+   ->
+Response
+```
 
-* A route file determines which endpoint handles a request.
-* A controller decides what happens when the request reaches that endpoint.
-* Middleware performs work before or after a controller.
-* A data file stores temporary application data.
-* A configuration file manages application configuration.
-* `app.js` configures Express.
-* `server.js` starts the server.
+Everything happens inside `server.js`.
 
-This structure makes the application easier to:
+After refactoring, the request will move through several specialised files:
 
-* Read.
-* Debug.
-* Test.
-* Extend.
-* Secure.
-* Maintain.
+```text
+Postman
+   ->
+server.js
+   ->
+app.js
+   ->
+routes
+   ->
+middleware
+   ->
+controllers
+   ->
+data
+   ->
+Response
+```
+
+This may look more complicated at first, but each file has one clear responsibility.
+
+The files communicate using:
+
+```javascript
+require()
+module.exports
+req
+res
+next
+```
+
+We will move the code in the same order that a request flows through the backend.
 
 ---
 
-# 🧭 Part 2: Final Backend Structure
+# 🔍 Part 2: Review `server.js` Before Refactoring
 
-At the end of Part A, the project should resemble:
-
-```text
-GameVault
-├── .gitignore
-└── backend
-    ├── certificates
-    │   ├── certificate.pem
-    │   └── privatekey.pem
-    ├── config
-    │   └── httpsConfig.js
-    ├── controllers
-    │   ├── gameController.js
-    │   └── systemController.js
-    ├── data
-    │   └── games.js
-    ├── middleware
-    │   ├── errorHandler.js
-    │   ├── notFound.js
-    │   └── validateGame.js
-    ├── routes
-    │   ├── gameRoutes.js
-    │   └── systemRoutes.js
-    ├── node_modules
-    ├── .env
-    ├── .env.example
-    ├── app.js
-    ├── package-lock.json
-    ├── package.json
-    └── server.js
-```
-
----
-
-# 🛑 Part 3: Stop the Existing Server
-
-Before creating or moving files, stop the server.
-
-Click inside the terminal and press:
+Open:
 
 ```text
-Ctrl + C
+backend/server.js
 ```
 
-Confirm that the terminal returns to the command prompt.
+Your file should contain sections similar to the following.
 
----
-
-# 📍 Part 4: Confirm the Terminal Location
-
-All terminal commands must be run from:
-
-```text
-GameVault/backend
-```
-
-Move into the backend folder where necessary:
-
-```bash
-cd backend
-```
-
-The terminal path should end with:
-
-```text
-GameVault\backend
-```
-
----
-
-# 📁 Part 5: Create the Required Folders
-
-Run the following commands from the `backend` folder:
-
-```bash
-mkdir config
-mkdir controllers
-mkdir data
-mkdir middleware
-mkdir routes
-```
-
-The project should now contain:
-
-```text
-backend
-├── certificates
-├── config
-├── controllers
-├── data
-├── middleware
-├── routes
-├── node_modules
-├── .env
-├── .env.example
-├── package-lock.json
-├── package.json
-└── server.js
-```
-
-No new npm packages are required for this refactoring.
-
----
-
-# 🎮 Part 6: Create the Temporary Games Data File
-
-Inside the `data` folder, create:
-
-```text
-games.js
-```
-
-The complete path should be:
-
-```text
-backend/data/games.js
-```
-
-Add the existing temporary games collection:
+The exact comments or formatting may be slightly different, but the responsibilities should be the same.
 
 ```javascript
 /*
+Loads environment variables from the .env file.
+*/
+require("dotenv").config();
+
+/*
+Imports the required modules.
+*/
+const express = require("express");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+
+/*
+Creates the Express application.
+*/
+const app = express();
+
+/*
+Allows Express to read JSON request bodies.
+*/
+app.use(express.json());
+
+/*
 Temporary in-memory game data.
-
-The data is stored in an array while the project does not yet
-use MongoDB.
-
-Any games added while the server is running will be lost when
-the server restarts.
 */
 const games = [
     {
@@ -234,227 +185,95 @@ const games = [
 ];
 
 /*
-Exports the games array.
-
-Other files can import and use the same shared array.
+System routes.
 */
-module.exports = games;
-```
+app.get("/", (req, res) => {
 
-## Why this file is required
-
-Previously, the games array was stored inside `server.js`.
-
-It is now separated because:
-
-* Data should not be mixed with server startup logic.
-* Controllers need access to the games.
-* One shared array should be used throughout the application.
-* MongoDB will replace this file later.
-
-Do not create another games array in the controller.
-
----
-
-# 🎛️ Part 7: Create the System Controller
-
-Inside the `controllers` folder, create:
-
-```text
-systemController.js
-```
-
-The complete path should be:
-
-```text
-backend/controllers/systemController.js
-```
-
-Add:
-
-```javascript
-/*
-Returns information for the root endpoint.
-
-The controller receives the request and response objects from
-the route file.
-*/
-const getRoot = (req, res) => {
-
-    const appName = process.env.APP_NAME || "GameVault API";
+    const appName =
+        process.env.APP_NAME || "GameVault API";
 
     return res.status(200).json({
         application: appName,
         message: "Welcome to the GameVault API"
     });
 
-};
+});
 
-/*
-Returns information about the GameVault application.
-*/
-const getAbout = (req, res) => {
+app.get("/about", (req, res) => {
 
-    const appName = process.env.APP_NAME || "GameVault API";
+    const appName =
+        process.env.APP_NAME || "GameVault API";
 
     return res.status(200).json({
         application: appName,
         description:
-            "GameVault is a secure video game collection and review platform.",
-        currentStage:
-            "Learning Unit 2 - Refactoring the Backend"
+            "GameVault is a secure video game collection and review platform."
     });
 
-};
+});
 
-/*
-Returns the current health status of the application.
+app.get("/health", (req, res) => {
 
-The timestamp is generated whenever the endpoint is requested.
-*/
-const getHealth = (req, res) => {
-
-    const appName = process.env.APP_NAME || "GameVault API";
+    const appName =
+        process.env.APP_NAME || "GameVault API";
 
     return res.status(200).json({
         application: appName,
         status: "OK",
         protocol: "HTTPS",
-        environment: process.env.NODE_ENV || "development",
+        environment:
+            process.env.NODE_ENV || "development",
         timestamp: new Date().toISOString()
     });
 
-};
+});
 
 /*
-Exports the controller functions.
-
-The system route file will import these functions and connect
-them to the correct endpoints.
+Returns all games.
 */
-module.exports = {
-    getRoot,
-    getAbout,
-    getHealth
-};
-```
+app.get("/games", (req, res) => {
 
-## Controller responsibility
+    return res.status(200).json({
+        count: games.length,
+        data: games
+    });
 
-This file handles the response logic for:
-
-```text
-GET /
-GET /about
-GET /health
-```
-
-It does not define the route URLs. The URLs will be defined inside `systemRoutes.js`.
-
----
-
-# 🛣️ Part 8: Create the System Routes
-
-Inside the `routes` folder, create:
-
-```text
-systemRoutes.js
-```
-
-The complete path should be:
-
-```text
-backend/routes/systemRoutes.js
-```
-
-Add:
-
-```javascript
-const express = require("express");
+});
 
 /*
-Imports the controller functions that will handle each system
-route.
+Returns one game using its ID.
 */
-const {
-    getRoot,
-    getAbout,
-    getHealth
-} = require("../controllers/systemController");
+app.get("/games/:id", (req, res) => {
+
+    const gameId = Number(req.params.id);
+
+    if (!Number.isInteger(gameId)) {
+        return res.status(400).json({
+            error: "Game ID must be a whole number."
+        });
+    }
+
+    const game = games.find(
+        currentGame => currentGame.id === gameId
+    );
+
+    if (!game) {
+        return res.status(404).json({
+            error: "Game not found."
+        });
+    }
+
+    return res.status(200).json({
+        data: game
+    });
+
+});
 
 /*
-Creates a smaller Express router.
-
-This router will later be registered inside app.js.
+Creates a new game.
 */
-const router = express.Router();
+app.post("/games", (req, res) => {
 
-/*
-GET /
-
-Calls the getRoot controller function.
-*/
-router.get("/", getRoot);
-
-/*
-GET /about
-
-Calls the getAbout controller function.
-*/
-router.get("/about", getAbout);
-
-/*
-GET /health
-
-Calls the getHealth controller function.
-*/
-router.get("/health", getHealth);
-
-/*
-Exports the router so that app.js can use it.
-*/
-module.exports = router;
-```
-
-## Route responsibility
-
-The route file decides:
-
-* Which HTTP method is used.
-* Which route path is used.
-* Which controller handles the request.
-
-It does not contain the complete response logic.
-
----
-
-# 🛡️ Part 9: Create the Game Validation Middleware
-
-Inside the `middleware` folder, create:
-
-```text
-validateGame.js
-```
-
-The complete path should be:
-
-```text
-backend/middleware/validateGame.js
-```
-
-Add:
-
-```javascript
-/*
-Validates the request body before a new game is created.
-
-Middleware runs before the controller function.
-*/
-const validateGame = (req, res, next) => {
-
-    /*
-    Extracts the expected values from the request body.
-    */
     const {
         title,
         genre,
@@ -464,10 +283,7 @@ const validateGame = (req, res, next) => {
     } = req.body;
 
     /*
-    Checks that all required fields were supplied.
-
-    releaseYear is compared with undefined because a number
-    should not be checked in exactly the same way as text.
+    Checks that the required fields were supplied.
     */
     if (
         !title ||
@@ -483,7 +299,7 @@ const validateGame = (req, res, next) => {
     }
 
     /*
-    Checks that all expected text fields contain strings.
+    Checks that the text values contain strings.
     */
     if (
         typeof title !== "string" ||
@@ -497,73 +313,15 @@ const validateGame = (req, res, next) => {
         });
     }
 
-    /*
-    Removes unnecessary spaces from the beginning and end of
-    each text value.
-
-    The age rating is also changed to uppercase so that values
-    such as "t" and "m" can be handled consistently.
-    */
     const cleanedTitle = title.trim();
     const cleanedGenre = genre.trim();
     const cleanedPlatform = platform.trim();
-    const cleanedAgeRating = ageRating.trim().toUpperCase();
+    const cleanedAgeRating =
+        ageRating.trim().toUpperCase();
 
-    /*
-    Validates the length of the game title.
-    */
-    if (
-        cleanedTitle.length < 2 ||
-        cleanedTitle.length > 100
-    ) {
-        return res.status(400).json({
-            error:
-                "Title must contain between 2 and 100 characters."
-        });
-    }
+    const currentYear =
+        new Date().getFullYear();
 
-    /*
-    Validates the length of the genre.
-    */
-    if (
-        cleanedGenre.length < 2 ||
-        cleanedGenre.length > 50
-    ) {
-        return res.status(400).json({
-            error:
-                "Genre must contain between 2 and 50 characters."
-        });
-    }
-
-    /*
-    Validates the length of the platform.
-    */
-    if (
-        cleanedPlatform.length < 2 ||
-        cleanedPlatform.length > 50
-    ) {
-        return res.status(400).json({
-            error:
-                "Platform must contain between 2 and 50 characters."
-        });
-    }
-
-    /*
-    Creates the maximum permitted release year dynamically.
-
-    Games announced for the near future may use a release year
-    up to two years after the current year.
-    */
-    const currentYear = new Date().getFullYear();
-
-    /*
-    Validates that releaseYear:
-
-    - Is a number.
-    - Is a whole number.
-    - Is not earlier than 1950.
-    - Is not more than two years into the future.
-    */
     if (
         typeof releaseYear !== "number" ||
         !Number.isInteger(releaseYear) ||
@@ -576,9 +334,6 @@ const validateGame = (req, res, next) => {
         });
     }
 
-    /*
-    Stores the age ratings accepted by GameVault.
-    */
     const allowedAgeRatings = [
         "E",
         "E10+",
@@ -587,96 +342,713 @@ const validateGame = (req, res, next) => {
         "18"
     ];
 
-    /*
-    Rejects an age rating that is not included in the accepted
-    list.
-    */
-    if (!allowedAgeRatings.includes(cleanedAgeRating)) {
+    if (
+        !allowedAgeRatings.includes(
+            cleanedAgeRating
+        )
+    ) {
         return res.status(400).json({
             error:
                 `Age rating must be one of: ${allowedAgeRatings.join(", ")}.`
         });
     }
 
-    /*
-    Stores the cleaned and validated values on the request
-    object.
+    const nextId =
+        games.length > 0
+            ? Math.max(
+                ...games.map(game => game.id)
+            ) + 1
+            : 1;
 
-    The controller can use these values instead of cleaning
-    the request body again.
-    */
-    req.validatedGame = {
+    const newGame = {
+        id: nextId,
         title: cleanedTitle,
         genre: cleanedGenre,
         platform: cleanedPlatform,
         releaseYear,
-        ageRating: cleanedAgeRating
+        ageRating: cleanedAgeRating,
+        available: true
     };
 
-    /*
-    Passes the request to the next function.
+    games.push(newGame);
 
-    In this case, the next function will be the createGame
-    controller.
-    */
-    next();
+    return res.status(201).json({
+        message: "Game created successfully.",
+        data: newGame
+    });
 
+});
+
+/*
+Handles requests that do not match a valid route.
+*/
+app.use((req, res) => {
+
+    return res.status(404).json({
+        error: "Route not found."
+    });
+
+});
+
+/*
+Reads the HTTPS certificate files.
+*/
+const backendDirectory = __dirname;
+
+const httpsOptions = {
+    key: fs.readFileSync(
+        path.resolve(
+            backendDirectory,
+            process.env.SSL_KEY_PATH
+        )
+    ),
+    cert: fs.readFileSync(
+        path.resolve(
+            backendDirectory,
+            process.env.SSL_CERT_PATH
+        )
+    )
 };
 
 /*
-Exports the middleware function.
+Reads the port from the environment.
 */
-module.exports = validateGame;
+const HTTPS_PORT =
+    process.env.HTTPS_PORT || 4000;
+
+/*
+Creates the HTTPS server.
+*/
+const server =
+    https.createServer(httpsOptions, app);
+
+/*
+Starts the server.
+*/
+server.listen(HTTPS_PORT, () => {
+
+    console.log(
+        `GameVault API is running securely on https://localhost:${HTTPS_PORT}`
+    );
+
+});
 ```
 
-## How middleware works
+This file works, but it mixes several unrelated responsibilities.
 
-The middleware receives:
+The existing guide already identifies these responsibilities and the final folder structure. The purpose of the new process is to show where each existing section moves and how it remains connected. 
+
+---
+
+# 🗂️ Part 3: Identify What Will Move
+
+Before moving any code, identify the destination for each section.
 
 ```text
-req
-res
-next
+Current code inside server.js          Destination
+
+games array                            data/games.js
+
+Root, about and health logic           controllers/systemController.js
+
+Game response logic                    controllers/gameController.js
+
+System route paths                     routes/systemRoutes.js
+
+Game route paths                       routes/gameRoutes.js
+
+POST validation                        middleware/validateGame.js
+
+Invalid-route handling                 middleware/notFound.js
+
+Unexpected-error handling              middleware/errorHandler.js
+
+HTTPS certificate setup                config/httpsConfig.js
+
+Express setup and route registration   app.js
+
+HTTPS server startup                   server.js
 ```
 
-* `req` contains information about the incoming request.
-* `res` is used to send a response.
-* `next` passes control to the next middleware or controller.
+The most important principle is:
 
-When validation fails, the middleware returns an error response.
+> We are moving code, not duplicating it.
 
-When validation succeeds, it calls:
+When a section is moved successfully, it should be removed from `server.js`.
 
-```javascript
-next();
+---
+
+# 🧭 Part 4: The Refactoring Order
+
+We will refactor in this order:
+
+```text
+1. Move the games array
+2. Move the system response functions
+3. Create the system routes
+4. Move the game response functions
+5. Move validation into middleware
+6. Create the game routes
+7. Move invalid-route handling
+8. Add central error handling
+9. Move Express setup into app.js
+10. Move HTTPS configuration
+11. Leave server startup inside server.js
+```
+
+After each major step, we will test the application.
+
+This allows us to identify exactly which change caused an error.
+
+---
+
+# 🛑 Part 5: Stop the Existing Server
+
+Before moving code, stop the running server.
+
+Click inside the terminal and press:
+
+```text
+Ctrl + C
+```
+
+Confirm that the terminal returns to the command prompt.
+
+---
+
+# 📍 Part 6: Confirm the Terminal Location
+
+All commands must be run from:
+
+```text
+GameVault/backend
+```
+
+Move into the backend folder where necessary:
+
+```bash
+cd backend
+```
+
+The terminal path should end with:
+
+```text
+GameVault\backend
 ```
 
 ---
 
-# 🎮 Part 10: Create the Game Controller
+# 📁 Part 7: Create the Destination Folders
 
-Inside the `controllers` folder, create:
+Run:
 
-```text
-gameController.js
+```bash
+mkdir config
+mkdir controllers
+mkdir data
+mkdir middleware
+mkdir routes
 ```
 
-The complete path should be:
+The backend should now contain:
 
 ```text
-backend/controllers/gameController.js
+backend
+├── certificates
+├── config
+├── controllers
+├── data
+├── middleware
+├── routes
+├── node_modules
+├── .env
+├── .env.example
+├── package-lock.json
+├── package.json
+└── server.js
+```
+
+At this stage, the folders are empty.
+
+We will now move existing code into them.
+
+---
+
+# 🎮 Part 8: Move the Games Array
+
+## 8.1 Find the array in `server.js`
+
+Locate:
+
+```javascript
+const games = [
+    // Game objects
+];
+```
+
+Cut the complete array from `server.js`.
+
+Do not leave a second copy behind.
+
+## 8.2 Create the data file
+
+Create:
+
+```text
+backend/data/games.js
+```
+
+Paste the array into the file:
+
+```javascript
+/*
+Temporary in-memory game data.
+
+This array was previously stored inside server.js.
+
+It has been moved because server.js should not be responsible
+for storing application data.
+*/
+const games = [
+    {
+        id: 1,
+        title: "The Legend of Zelda: Breath of the Wild",
+        genre: "Action Adventure",
+        platform: "Nintendo Switch",
+        releaseYear: 2017,
+        ageRating: "E10+",
+        available: true
+    },
+    {
+        id: 2,
+        title: "Marvel's Spider-Man 2",
+        genre: "Action Adventure",
+        platform: "PlayStation 5",
+        releaseYear: 2023,
+        ageRating: "T",
+        available: true
+    },
+    {
+        id: 3,
+        title: "Forza Horizon 5",
+        genre: "Racing",
+        platform: "Xbox Series X/S",
+        releaseYear: 2021,
+        ageRating: "E",
+        available: false
+    }
+];
+
+/*
+Exports the array.
+
+Another file can import and use this same array.
+*/
+module.exports = games;
+```
+
+## 8.3 Import the array into `server.js`
+
+For now, add this near the top of `server.js`:
+
+```javascript
+/*
+Imports the shared games array from data/games.js.
+*/
+const games = require("./data/games");
+```
+
+The routes inside `server.js` can still use:
+
+```javascript
+games
+```
+
+The only difference is that the array now lives in another file.
+
+## 8.4 How the files communicate
+
+Inside `games.js`:
+
+```javascript
+module.exports = games;
+```
+
+This means:
+
+> Make the games array available to another file.
+
+Inside `server.js`:
+
+```javascript
+const games = require("./data/games");
+```
+
+This means:
+
+> Import the value exported by `data/games.js`.
+
+The communication flow is:
+
+```text
+data/games.js
+      ->
+module.exports
+      ->
+require("./data/games")
+      ->
+server.js
+```
+
+## 8.5 Important detail
+
+Do not create another array inside `server.js`.
+
+Both GET and POST must use the same shared array.
+
+## 8.6 Test the application
+
+Start the server:
+
+```bash
+npm run dev
+```
+
+Test:
+
+```text
+GET https://localhost:4000/games
+GET https://localhost:4000/games/1
+POST https://localhost:4000/games
+```
+
+The routes should still work.
+
+Stop the server before continuing:
+
+```text
+Ctrl + C
+```
+
+---
+
+# 🎛️ Part 9: Move the System Response Logic
+
+The system routes currently look similar to:
+
+```javascript
+app.get("/", (req, res) => {
+    // Response logic
+});
+```
+
+This block contains two responsibilities:
+
+```text
+app.get("/")
+    ->
+Route information
+
+(req, res) => { ... }
+    ->
+Controller logic
+```
+
+The route determines:
+
+* The HTTP method.
+* The path.
+
+The controller determines:
+
+* What the application should do.
+* Which response should be returned.
+
+We will separate them.
+
+## 9.1 Create the controller
+
+Create:
+
+```text
+backend/controllers/systemController.js
+```
+
+Move the callback logic from the three system routes into named functions:
+
+```javascript
+/*
+Contains the response logic that was previously inside:
+
+app.get("/", ...)
+*/
+const getRoot = (req, res) => {
+
+    const appName =
+        process.env.APP_NAME || "GameVault API";
+
+    return res.status(200).json({
+        application: appName,
+        message: "Welcome to the GameVault API"
+    });
+
+};
+
+/*
+Contains the response logic that was previously inside:
+
+app.get("/about", ...)
+*/
+const getAbout = (req, res) => {
+
+    const appName =
+        process.env.APP_NAME || "GameVault API";
+
+    return res.status(200).json({
+        application: appName,
+        description:
+            "GameVault is a secure video game collection and review platform.",
+        currentStage:
+            "Learning Unit 2 - Refactoring the Backend"
+    });
+
+};
+
+/*
+Contains the response logic that was previously inside:
+
+app.get("/health", ...)
+*/
+const getHealth = (req, res) => {
+
+    const appName =
+        process.env.APP_NAME || "GameVault API";
+
+    return res.status(200).json({
+        application: appName,
+        status: "OK",
+        protocol: "HTTPS",
+        environment:
+            process.env.NODE_ENV || "development",
+        timestamp: new Date().toISOString()
+    });
+
+};
+
+/*
+Exports the controller functions.
+
+The route file will import these functions.
+*/
+module.exports = {
+    getRoot,
+    getAbout,
+    getHealth
+};
+```
+
+## 9.2 What changed?
+
+Before:
+
+```javascript
+app.get("/", (req, res) => {
+
+    return res.status(200).json({
+        message: "Welcome"
+    });
+
+});
+```
+
+After:
+
+```javascript
+const getRoot = (req, res) => {
+
+    return res.status(200).json({
+        message: "Welcome"
+    });
+
+};
+```
+
+The response logic has not changed.
+
+It has simply been:
+
+* Moved.
+* Given a name.
+* Exported.
+
+---
+
+# 🛣️ Part 10: Create the System Routes
+
+Create:
+
+```text
+backend/routes/systemRoutes.js
 ```
 
 Add:
 
 ```javascript
+const express = require("express");
+
 /*
-Imports the shared temporary games collection.
+Imports the controller functions.
+
+These functions contain the response logic.
+*/
+const {
+    getRoot,
+    getAbout,
+    getHealth
+} = require("../controllers/systemController");
+
+/*
+Creates a smaller Express router.
+
+This router handles only the system endpoints.
+*/
+const router = express.Router();
+
+/*
+Connects each route to the correct controller function.
+*/
+router.get("/", getRoot);
+router.get("/about", getAbout);
+router.get("/health", getHealth);
+
+/*
+Exports the router.
+*/
+module.exports = router;
+```
+
+## 10.1 How routes speak to controllers
+
+This line:
+
+```javascript
+router.get("/", getRoot);
+```
+
+means:
+
+```text
+When a GET request reaches /
+        ->
+Run the getRoot function
+        ->
+getRoot sends the response
+```
+
+The route file knows:
+
+* The method is `GET`.
+* The path is `/`.
+* The controller is `getRoot`.
+
+The controller knows:
+
+* What data to return.
+* Which status code to use.
+
+## 10.2 Temporarily connect the router to `server.js`
+
+At the top of `server.js`, add:
+
+```javascript
+const systemRoutes =
+    require("./routes/systemRoutes");
+```
+
+Remove the original three system route blocks:
+
+```javascript
+app.get("/", ...);
+app.get("/about", ...);
+app.get("/health", ...);
+```
+
+Replace them with:
+
+```javascript
+/*
+Sends system requests to systemRoutes.js.
+*/
+app.use("/", systemRoutes);
+```
+
+## 10.3 How the route path is built
+
+Inside `server.js`:
+
+```javascript
+app.use("/", systemRoutes);
+```
+
+Inside `systemRoutes.js`:
+
+```javascript
+router.get("/about", getAbout);
+```
+
+Combined route:
+
+```text
+/ + /about = /about
+```
+
+## 10.4 Test the system routes
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+Test:
+
+```text
+GET https://localhost:4000/
+GET https://localhost:4000/about
+GET https://localhost:4000/health
+```
+
+The responses should remain the same.
+
+Stop the server before continuing.
+
+---
+
+# 🎮 Part 11: Move the Game Controller Logic
+
+The game routes currently contain both route information and game-processing logic.
+
+We will move the processing logic into:
+
+```text
+backend/controllers/gameController.js
+```
+
+Create the file and add:
+
+```javascript
+/*
+Imports the shared games array.
+
+The controller does not create a new array.
+It uses the array exported by data/games.js.
 */
 const games = require("../data/games");
 
 /*
-Returns all games.
+Contains the logic previously used by:
+
+GET /games
 */
 const getAllGames = (req, res) => {
 
@@ -688,46 +1060,35 @@ const getAllGames = (req, res) => {
 };
 
 /*
-Returns one game using the ID supplied in the route.
+Contains the logic previously used by:
+
+GET /games/:id
 */
 const getGameById = (req, res) => {
 
     /*
-    Route parameters are received as text.
+    Route parameters arrive as text.
 
     Number converts the supplied value into a number.
     */
     const gameId = Number(req.params.id);
 
-    /*
-    Rejects values that cannot be converted into a whole-number
-    game ID.
-    */
     if (!Number.isInteger(gameId)) {
         return res.status(400).json({
             error: "Game ID must be a whole number."
         });
     }
 
-    /*
-    Searches the games array for a game with the requested ID.
-    */
     const game = games.find(
         currentGame => currentGame.id === gameId
     );
 
-    /*
-    Returns 404 when no matching game exists.
-    */
     if (!game) {
         return res.status(404).json({
             error: "Game not found."
         });
     }
 
-    /*
-    Returns the matching game.
-    */
     return res.status(200).json({
         data: game
     });
@@ -735,10 +1096,11 @@ const getGameById = (req, res) => {
 };
 
 /*
-Creates a new game.
+Contains the creation logic previously used by:
 
-The request reaches this function only after it has passed
-through the validateGame middleware.
+POST /games
+
+Validation will happen before this function runs.
 */
 const createGame = (req, res) => {
 
@@ -754,20 +1116,13 @@ const createGame = (req, res) => {
         ageRating
     } = req.validatedGame;
 
-    /*
-    Generates the next available game ID.
-
-    If games exist, the largest current ID is increased by one.
-    If the array is empty, the first ID will be 1.
-    */
     const nextId =
         games.length > 0
-            ? Math.max(...games.map(game => game.id)) + 1
+            ? Math.max(
+                ...games.map(game => game.id)
+            ) + 1
             : 1;
 
-    /*
-    Creates the new game object.
-    */
     const newGame = {
         id: nextId,
         title,
@@ -778,16 +1133,8 @@ const createGame = (req, res) => {
         available: true
     };
 
-    /*
-    Adds the new game to the temporary array.
-    */
     games.push(newGame);
 
-    /*
-    Returns a 201 Created response.
-
-    The response includes the game that was created.
-    */
     return res.status(201).json({
         message: "Game created successfully.",
         data: newGame
@@ -796,8 +1143,7 @@ const createGame = (req, res) => {
 };
 
 /*
-Exports the controller functions so that the route file can use
-them.
+Exports the controller functions.
 */
 module.exports = {
     getAllGames,
@@ -806,17 +1152,319 @@ module.exports = {
 };
 ```
 
----
+## 11.1 How the controller speaks to the data file
 
-# 🎯 Part 11: Create the Game Routes
+Inside `gameController.js`:
 
-Inside the `routes` folder, create:
-
-```text
-gameRoutes.js
+```javascript
+const games = require("../data/games");
 ```
 
-The complete path should be:
+This imports the same array exported by `games.js`.
+
+The request flow is:
+
+```text
+gameController.js
+        -> require
+data/games.js
+        ->
+shared games array
+```
+
+When `createGame` runs:
+
+```javascript
+games.push(newGame);
+```
+
+the shared array changes.
+
+When `getAllGames` runs later, it reads the same changed array.
+
+---
+
+# 🛡️ Part 12: Move Validation into Middleware
+
+The current POST route contains two different responsibilities:
+
+```text
+Validate the incoming request
+Create the new game
+```
+
+These should be separated.
+
+The validation should run before the controller.
+
+Create:
+
+```text
+backend/middleware/validateGame.js
+```
+
+Move the validation code from the old POST route into this file:
+
+```javascript
+/*
+Validates the request body before a new game is created.
+
+Middleware runs before the controller.
+*/
+const validateGame = (req, res, next) => {
+
+    const {
+        title,
+        genre,
+        platform,
+        releaseYear,
+        ageRating
+    } = req.body;
+
+    /*
+    Checks that all required fields were supplied.
+    */
+    if (
+        !title ||
+        !genre ||
+        !platform ||
+        releaseYear === undefined ||
+        !ageRating
+    ) {
+        return res.status(400).json({
+            error:
+                "Title, genre, platform, release year and age rating are required."
+        });
+    }
+
+    /*
+    Checks that the expected text values are strings.
+    */
+    if (
+        typeof title !== "string" ||
+        typeof genre !== "string" ||
+        typeof platform !== "string" ||
+        typeof ageRating !== "string"
+    ) {
+        return res.status(400).json({
+            error:
+                "Title, genre, platform and age rating must be text."
+        });
+    }
+
+    /*
+    Cleans the text values.
+    */
+    const cleanedTitle = title.trim();
+    const cleanedGenre = genre.trim();
+    const cleanedPlatform = platform.trim();
+    const cleanedAgeRating =
+        ageRating.trim().toUpperCase();
+
+    /*
+    Validates title length.
+    */
+    if (
+        cleanedTitle.length < 2 ||
+        cleanedTitle.length > 100
+    ) {
+        return res.status(400).json({
+            error:
+                "Title must contain between 2 and 100 characters."
+        });
+    }
+
+    /*
+    Validates genre length.
+    */
+    if (
+        cleanedGenre.length < 2 ||
+        cleanedGenre.length > 50
+    ) {
+        return res.status(400).json({
+            error:
+                "Genre must contain between 2 and 50 characters."
+        });
+    }
+
+    /*
+    Validates platform length.
+    */
+    if (
+        cleanedPlatform.length < 2 ||
+        cleanedPlatform.length > 50
+    ) {
+        return res.status(400).json({
+            error:
+                "Platform must contain between 2 and 50 characters."
+        });
+    }
+
+    const currentYear =
+        new Date().getFullYear();
+
+    /*
+    Validates the release year.
+    */
+    if (
+        typeof releaseYear !== "number" ||
+        !Number.isInteger(releaseYear) ||
+        releaseYear < 1950 ||
+        releaseYear > currentYear + 2
+    ) {
+        return res.status(400).json({
+            error:
+                `Release year must be a whole number between 1950 and ${currentYear + 2}.`
+        });
+    }
+
+    const allowedAgeRatings = [
+        "E",
+        "E10+",
+        "T",
+        "M",
+        "18"
+    ];
+
+    /*
+    Validates the age rating.
+    */
+    if (
+        !allowedAgeRatings.includes(
+            cleanedAgeRating
+        )
+    ) {
+        return res.status(400).json({
+            error:
+                `Age rating must be one of: ${allowedAgeRatings.join(", ")}.`
+        });
+    }
+
+    /*
+    Adds the cleaned values to the request object.
+
+    The same request object will continue to the controller.
+    */
+    req.validatedGame = {
+        title: cleanedTitle,
+        genre: cleanedGenre,
+        platform: cleanedPlatform,
+        releaseYear,
+        ageRating: cleanedAgeRating
+    };
+
+    /*
+    Passes the request to the next function.
+    */
+    next();
+
+};
+
+/*
+Exports the middleware.
+*/
+module.exports = validateGame;
+```
+
+---
+
+# 🔄 Part 13: Understand `req`, `res` and `next`
+
+Middleware receives:
+
+```javascript
+(req, res, next)
+```
+
+## `req`
+
+`req` contains information about the incoming request.
+
+Examples:
+
+```javascript
+req.body
+req.params
+req.headers
+req.method
+req.path
+```
+
+## `res`
+
+`res` is used to send a response.
+
+Example:
+
+```javascript
+return res.status(400).json({
+    error: "Invalid data."
+});
+```
+
+## `next`
+
+`next()` tells Express:
+
+> This middleware has finished successfully. Continue to the next function.
+
+For the POST route, the flow will be:
+
+```text
+Postman sends req.body
+        ->
+validateGame reads req.body
+        ->
+validateGame checks the values
+        ->
+validateGame creates req.validatedGame
+        ->
+next()
+        ->
+createGame reads req.validatedGame
+        ->
+Response
+```
+
+The same `req` object travels through the middleware and controller.
+
+That is why the middleware can write:
+
+```javascript
+req.validatedGame = {
+    // Cleaned data
+};
+```
+
+and the controller can later read:
+
+```javascript
+req.validatedGame
+```
+
+## When validation fails
+
+When validation fails, the middleware returns a response:
+
+```javascript
+return res.status(400).json({
+    error: "Invalid data."
+});
+```
+
+It does not call:
+
+```javascript
+next();
+```
+
+Therefore, the controller does not run.
+
+---
+
+# 🎯 Part 14: Create the Game Routes
+
+Create:
 
 ```text
 backend/routes/gameRoutes.js
@@ -837,39 +1485,36 @@ const {
 } = require("../controllers/gameController");
 
 /*
-Imports the validation middleware used when creating a game.
+Imports the validation middleware.
 */
-const validateGame = require("../middleware/validateGame");
+const validateGame =
+    require("../middleware/validateGame");
 
 /*
-Creates the game router.
+Creates a router for game-related endpoints.
 */
 const router = express.Router();
 
 /*
-GET /games
-
-The /games base path will be added inside app.js.
-Therefore, this route only needs "/".
+Returns all games.
 */
 router.get("/", getAllGames);
 
 /*
-GET /games/:id
-
-The value after /games/ will be available through req.params.id.
+Returns one game.
 */
 router.get("/:id", getGameById);
 
 /*
-POST /games
+Creates a new game.
 
-The request first passes through validateGame.
-
-If validation succeeds, createGame runs next.
-If validation fails, createGame is not called.
+Express runs the functions from left to right.
 */
-router.post("/", validateGame, createGame);
+router.post(
+    "/",
+    validateGame,
+    createGame
+);
 
 /*
 Exports the router.
@@ -877,43 +1522,175 @@ Exports the router.
 module.exports = router;
 ```
 
-## Route execution order
+## 14.1 Explain the POST execution order
 
-For a valid POST request, Express runs:
+This route:
+
+```javascript
+router.post(
+    "/",
+    validateGame,
+    createGame
+);
+```
+
+does not run everything at the same time.
+
+Express runs the functions from left to right:
 
 ```text
-POST /games
-        ↓
+POST /
+   ->
 validateGame
-        ↓
+   ->
+next()
+   ->
 createGame
-        ↓
+   ->
 Response
 ```
 
-For an invalid POST request:
+When validation fails:
 
 ```text
-POST /games
-        ↓
+POST /
+   ->
 validateGame
-        ↓
+   ->
 400 response
 ```
 
-The controller does not run when validation fails.
+`createGame` is skipped.
+
+## 14.2 Connect the route to `server.js`
+
+At the top of `server.js`, add:
+
+```javascript
+const gameRoutes =
+    require("./routes/gameRoutes");
+```
+
+Remove the original game route blocks:
+
+```javascript
+app.get("/games", ...);
+app.get("/games/:id", ...);
+app.post("/games", ...);
+```
+
+Replace them with:
+
+```javascript
+app.use("/games", gameRoutes);
+```
+
+## 14.3 How the paths combine
+
+Inside `server.js`:
+
+```javascript
+app.use("/games", gameRoutes);
+```
+
+Inside `gameRoutes.js`:
+
+```javascript
+router.get("/", getAllGames);
+```
+
+Combined:
+
+```text
+/games + / = /games
+```
+
+Inside `gameRoutes.js`:
+
+```javascript
+router.get("/:id", getGameById);
+```
+
+Combined:
+
+```text
+/games + /:id = /games/:id
+```
+
+Inside `gameRoutes.js`:
+
+```javascript
+router.post("/", validateGame, createGame);
+```
+
+Combined:
+
+```text
+POST /games
+```
 
 ---
 
-# ❓ Part 12: Create the Not-Found Middleware
+# 🧪 Part 15: Test the Game Routes
 
-Inside the `middleware` folder, create:
+Start the server:
 
-```text
-notFound.js
+```bash
+npm run dev
 ```
 
-The complete path should be:
+Test:
+
+```text
+GET https://localhost:4000/games
+GET https://localhost:4000/games/1
+GET https://localhost:4000/games/999
+GET https://localhost:4000/games/test
+POST https://localhost:4000/games
+```
+
+Test a valid POST body:
+
+```json
+{
+    "title": "Minecraft",
+    "genre": "Sandbox",
+    "platform": "PC",
+    "releaseYear": 2011,
+    "ageRating": "E10+"
+}
+```
+
+Also test an invalid body:
+
+```json
+{
+    "genre": "Sandbox",
+    "platform": "PC",
+    "releaseYear": 2011,
+    "ageRating": "E10+"
+}
+```
+
+Stop the server before continuing.
+
+---
+
+# ❓ Part 16: Move the Not-Found Handler
+
+The old `server.js` contains:
+
+```javascript
+app.use((req, res) => {
+
+    return res.status(404).json({
+        error: "Route not found."
+    });
+
+});
+```
+
+Move this function into:
 
 ```text
 backend/middleware/notFound.js
@@ -924,8 +1701,6 @@ Add:
 ```javascript
 /*
 Handles requests that do not match any valid route.
-
-This middleware must be registered after all valid routes.
 */
 const notFound = (req, res) => {
 
@@ -941,25 +1716,60 @@ Exports the middleware.
 module.exports = notFound;
 ```
 
-The not-found middleware should not expose:
+For now, import it into `server.js`:
 
-* File paths.
-* Stack traces.
-* Certificate information.
-* Environment variables.
-* Server configuration.
+```javascript
+const notFound =
+    require("./middleware/notFound");
+```
+
+Then replace the old anonymous not-found function with:
+
+```javascript
+app.use(notFound);
+```
+
+## Why must this come after the routes?
+
+Express checks middleware in the order in which it is registered.
+
+Correct order:
+
+```text
+Valid routes
+    ->
+notFound
+```
+
+Incorrect order:
+
+```text
+notFound
+    ->
+Valid routes
+```
+
+If `notFound` is registered first, every request immediately receives `404`.
 
 ---
 
-# ⚠️ Part 13: Create the Error-Handling Middleware
+# ⚠️ Part 17: Add Central Error Handling
 
-Inside the `middleware` folder, create:
+Not-found handling and unexpected-error handling are not the same.
+
+A not-found error means:
 
 ```text
-errorHandler.js
+The requested route does not exist.
 ```
 
-The complete path should be:
+An unexpected server error means:
+
+```text
+Something failed while processing a valid request.
+```
+
+Create:
 
 ```text
 backend/middleware/errorHandler.js
@@ -969,184 +1779,107 @@ Add:
 
 ```javascript
 /*
-Handles unexpected errors passed through the Express
-application.
+Handles unexpected errors passed through Express.
 
-An Express error-handling middleware function must have four
-parameters:
+Express recognises error-handling middleware because it has
+four parameters:
 
 err, req, res and next
 */
 const errorHandler = (err, req, res, next) => {
 
-    /*
-    Uses the status code attached to the error where available.
+    const statusCode =
+        err.statusCode || 500;
 
-    If no status code exists, the server returns 500.
-    */
-    const statusCode = err.statusCode || 500;
-
-    /*
-    Checks whether the application is running in development
-    mode.
-    */
     const isDevelopment =
         process.env.NODE_ENV === "development";
 
-    /*
-    Returns a controlled JSON response.
-
-    The stack trace is included only during development.
-    Production users should not receive internal technical
-    information.
-    */
     return res.status(statusCode).json({
         error:
             statusCode === 500
                 ? "An unexpected server error occurred."
                 : err.message,
-        stack: isDevelopment ? err.stack : undefined
+        stack:
+            isDevelopment
+                ? err.stack
+                : undefined
     });
 
 };
 
-/*
-Exports the error-handling middleware.
-*/
 module.exports = errorHandler;
 ```
 
-## Why `next` is included
+Import it into `server.js`:
 
-Although this function may not directly call `next`, Express identifies it as an error handler because it contains four parameters:
+```javascript
+const errorHandler =
+    require("./middleware/errorHandler");
+```
+
+Register it after `notFound`:
+
+```javascript
+app.use(notFound);
+app.use(errorHandler);
+```
+
+## How errors reach the error handler
+
+A route or controller can pass an error through Express:
+
+```javascript
+next(error);
+```
+
+Express skips normal middleware and looks for a function with four parameters:
 
 ```javascript
 (err, req, res, next)
 ```
 
-Removing one of these parameters may cause Express to treat it as normal middleware.
-
----
-
-# 🔐 Part 14: Create the HTTPS Configuration File
-
-Inside the `config` folder, create:
+The flow is:
 
 ```text
-httpsConfig.js
-```
-
-The complete path should be:
-
-```text
-backend/config/httpsConfig.js
-```
-
-Add:
-
-```javascript
-/*
-Imports Node.js modules.
-
-fs reads the certificate files.
-path creates reliable full file paths.
-*/
-const fs = require("fs");
-const path = require("path");
-
-/*
-Creates the full path to the backend folder.
-
-__dirname currently refers to backend/config.
-
-Moving one level upward produces the backend folder.
-*/
-const backendDirectory = path.resolve(__dirname, "..");
-
-/*
-Reads the relative certificate paths from the environment
-variables.
-
-Fallback values are supplied when an environment variable is
-not available.
-*/
-const sslKeyPath =
-    process.env.SSL_KEY_PATH ||
-    "certificates/privatekey.pem";
-
-const sslCertPath =
-    process.env.SSL_CERT_PATH ||
-    "certificates/certificate.pem";
-
-/*
-Combines the backend directory with each relative certificate
-path.
-
-This produces full paths to the certificate files.
-*/
-const resolvedKeyPath = path.resolve(
-    backendDirectory,
-    sslKeyPath
-);
-
-const resolvedCertPath = path.resolve(
-    backendDirectory,
-    sslCertPath
-);
-
-/*
-Reads the private key and certificate files.
-
-The HTTPS server requires both files.
-*/
-const httpsOptions = {
-    key: fs.readFileSync(resolvedKeyPath),
-    cert: fs.readFileSync(resolvedCertPath)
-};
-
-/*
-Exports the HTTPS configuration object.
-*/
-module.exports = httpsOptions;
-```
-
-## Important path detail
-
-Because this file is inside:
-
-```text
-backend/config
-```
-
-`__dirname` refers to the `config` folder.
-
-The code first moves one level upward to reach:
-
-```text
-backend
-```
-
-It can then locate:
-
-```text
-backend/certificates/privatekey.pem
-backend/certificates/certificate.pem
+Controller
+   ->
+next(error)
+   ->
+errorHandler
+   ->
+Controlled JSON response
 ```
 
 ---
 
-# ⚙️ Part 15: Create app.js
+# ⚙️ Part 18: Move Express Configuration into `app.js`
 
-Inside the main `backend` folder, create:
+At this stage, `server.js` still:
 
-```text
-app.js
-```
+* Imports Express.
+* Creates the Express application.
+* Enables JSON processing.
+* Registers routes.
+* Registers middleware.
+* Starts HTTPS.
 
-The complete path should be:
+We will now separate the Express application from the server startup.
+
+Create:
 
 ```text
 backend/app.js
+```
+
+Move the following responsibilities from `server.js` into `app.js`:
+
+```text
+Import Express
+Create app
+Enable JSON
+Register routes
+Register middleware
+Export app
 ```
 
 Add:
@@ -1157,15 +1890,20 @@ const express = require("express");
 /*
 Imports the route files.
 */
-const systemRoutes = require("./routes/systemRoutes");
-const gameRoutes = require("./routes/gameRoutes");
+const systemRoutes =
+    require("./routes/systemRoutes");
+
+const gameRoutes =
+    require("./routes/gameRoutes");
 
 /*
-Imports the middleware that handles invalid routes and
-unexpected errors.
+Imports the final middleware.
 */
-const notFound = require("./middleware/notFound");
-const errorHandler = require("./middleware/errorHandler");
+const notFound =
+    require("./middleware/notFound");
+
+const errorHandler =
+    require("./middleware/errorHandler");
 
 /*
 Creates the Express application.
@@ -1173,131 +1911,307 @@ Creates the Express application.
 const app = express();
 
 /*
-Enables the application to read JSON request bodies.
+Allows Express to read JSON request bodies.
 
-Without this middleware, req.body may be undefined when a
-client sends JSON.
+This must be registered before routes that use req.body.
 */
 app.use(express.json());
 
 /*
 Registers the system routes.
-
-The system router defines:
-
-GET /
-GET /about
-GET /health
 */
 app.use("/", systemRoutes);
 
 /*
-Registers the game routes under the /games base path.
-
-The routes inside gameRoutes.js are combined with this path.
-
-For example:
-
-router.get("/") becomes GET /games
-router.get("/:id") becomes GET /games/:id
-router.post("/") becomes POST /games
+Registers the game routes.
 */
 app.use("/games", gameRoutes);
 
 /*
-Handles requests that do not match a valid route.
+Handles unmatched routes.
 
-This must be registered after the valid routes.
+This must appear after all valid routes.
 */
 app.use(notFound);
 
 /*
-Handles unexpected application errors.
+Handles unexpected errors.
 
-This must be registered after the routes and not-found
-middleware.
+This must appear last.
 */
 app.use(errorHandler);
 
 /*
 Exports the configured Express application.
-
-server.js will import the application and use it to create the
-HTTPS server.
 */
 module.exports = app;
 ```
 
-## app.js responsibility
+## What should be removed from `server.js`?
 
-`app.js`:
+Remove:
 
-* Creates Express.
-* Enables JSON processing.
-* Registers routes.
-* Registers middleware.
-* Exports the application.
+```javascript
+const express = require("express");
+```
 
-It does not start the server.
+Remove:
+
+```javascript
+const app = express();
+```
+
+Remove:
+
+```javascript
+app.use(express.json());
+```
+
+Remove the route imports:
+
+```javascript
+const systemRoutes = ...
+const gameRoutes = ...
+```
+
+Remove the middleware imports:
+
+```javascript
+const notFound = ...
+const errorHandler = ...
+```
+
+Remove:
+
+```javascript
+app.use("/", systemRoutes);
+app.use("/games", gameRoutes);
+app.use(notFound);
+app.use(errorHandler);
+```
+
+## How `server.js` will receive the app
+
+Add to `server.js`:
+
+```javascript
+const app = require("./app");
+```
+
+## How the files communicate
+
+Inside `app.js`:
+
+```javascript
+module.exports = app;
+```
+
+Inside `server.js`:
+
+```javascript
+const app = require("./app");
+```
+
+The flow is:
+
+```text
+app.js
+  -> exports configured Express app
+server.js
+  -> gives app to HTTPS server
+https.createServer(httpsOptions, app)
+```
 
 ---
 
-# 🚀 Part 16: Replace server.js
+# 🔐 Part 19: Move HTTPS Configuration
 
-Once all the new files have been created, replace the existing contents of:
+The HTTPS configuration currently uses:
 
-```text
-backend/server.js
+```javascript
+fs
+path
+process.env.SSL_KEY_PATH
+process.env.SSL_CERT_PATH
 ```
 
-with:
+This code is not responsible for starting the server.
+
+Its responsibility is only:
+
+> Prepare the HTTPS certificate options.
+
+Create:
+
+```text
+backend/config/httpsConfig.js
+```
+
+Move the certificate-reading logic into it:
 
 ```javascript
 /*
-Loads environment variables before the other application files
-are imported.
+Imports built-in Node.js modules.
 
-This ensures that the HTTPS configuration and controllers can
-access process.env values.
+fs reads files.
+path creates reliable file paths.
+*/
+const fs = require("fs");
+const path = require("path");
+
+/*
+__dirname refers to backend/config.
+
+Moving one level upward produces the backend folder.
+*/
+const backendDirectory =
+    path.resolve(__dirname, "..");
+
+/*
+Reads the certificate paths from the environment.
+*/
+const sslKeyPath =
+    process.env.SSL_KEY_PATH ||
+    "certificates/privatekey.pem";
+
+const sslCertPath =
+    process.env.SSL_CERT_PATH ||
+    "certificates/certificate.pem";
+
+/*
+Builds complete paths to the certificate files.
+*/
+const resolvedKeyPath =
+    path.resolve(
+        backendDirectory,
+        sslKeyPath
+    );
+
+const resolvedCertPath =
+    path.resolve(
+        backendDirectory,
+        sslCertPath
+    );
+
+/*
+Reads the certificate files.
+*/
+const httpsOptions = {
+    key: fs.readFileSync(resolvedKeyPath),
+    cert: fs.readFileSync(resolvedCertPath)
+};
+
+/*
+Exports the HTTPS options.
+*/
+module.exports = httpsOptions;
+```
+
+## What should be removed from `server.js`?
+
+Remove:
+
+```javascript
+const fs = require("fs");
+const path = require("path");
+```
+
+Remove the existing certificate path and `httpsOptions` code.
+
+Import the completed configuration instead:
+
+```javascript
+const httpsOptions =
+    require("./config/httpsConfig");
+```
+
+## How the files communicate
+
+Inside `httpsConfig.js`:
+
+```javascript
+module.exports = httpsOptions;
+```
+
+Inside `server.js`:
+
+```javascript
+const httpsOptions =
+    require("./config/httpsConfig");
+```
+
+Then:
+
+```javascript
+https.createServer(httpsOptions, app);
+```
+
+`server.js` receives two prepared objects:
+
+```text
+app
+    from app.js
+
+httpsOptions
+    from config/httpsConfig.js
+```
+
+It combines them to create the HTTPS server.
+
+---
+
+# 🚀 Part 20: Final `server.js`
+
+After moving the other responsibilities, `server.js` should contain only server-startup logic.
+
+Update it to:
+
+```javascript
+/*
+Loads environment variables before importing application files.
+
+This is important because app.js, controllers and the HTTPS
+configuration may use process.env.
 */
 require("dotenv").config();
 
 /*
-Imports the built-in Node.js HTTPS module.
+Imports the built-in HTTPS module.
 */
 const https = require("https");
 
 /*
-Imports the configured Express application from app.js.
+Imports the configured Express application.
 */
 const app = require("./app");
 
 /*
-Imports the private-key and certificate configuration.
+Imports the prepared HTTPS certificate options.
 */
-const httpsOptions = require("./config/httpsConfig");
+const httpsOptions =
+    require("./config/httpsConfig");
 
 /*
-Reads the server configuration from the environment variables.
-
-Fallback values are provided when the environment variables are
-not available.
+Reads the startup values from the environment.
 */
-const HTTPS_PORT = process.env.HTTPS_PORT || 4000;
+const HTTPS_PORT =
+    process.env.HTTPS_PORT || 4000;
+
 const APP_NAME =
     process.env.APP_NAME || "GameVault API";
 
 /*
-Creates and starts the HTTPS server.
+Creates the HTTPS server.
 
-httpsOptions contains the private key and certificate.
+httpsOptions supplies the private key and certificate.
 
-app contains the configured Express application.
+app supplies the configured Express application.
 */
-const server = https.createServer(httpsOptions, app);
+const server =
+    https.createServer(httpsOptions, app);
 
 /*
-Starts listening for incoming HTTPS requests.
+Starts the server.
 */
 server.listen(HTTPS_PORT, () => {
 
@@ -1310,28 +2224,348 @@ server.listen(HTTPS_PORT, () => {
 /*
 Handles server startup errors.
 
-For example, EADDRINUSE occurs when another application is
-already using the selected port.
+For example, EADDRINUSE means that the selected port is already
+being used.
 */
 server.on("error", error => {
 
-    console.error("The GameVault server could not start.");
+    console.error(
+        "The GameVault server could not start."
+    );
+
     console.error(error.message);
 
 });
 ```
 
-The new `server.js` is much smaller because it now has one main responsibility:
+`server.js` now has one main responsibility:
 
 ```text
-Starting the HTTPS server
+Start the HTTPS server
 ```
 
 ---
 
-# 🌍 Part 17: Review the Environment File
+# 🧭 Part 21: Final Project Structure
 
-Your existing `backend/.env` file should remain:
+The backend should now resemble:
+
+```text
+backend
+├── certificates
+│   ├── certificate.pem
+│   └── privatekey.pem
+├── config
+│   └── httpsConfig.js
+├── controllers
+│   ├── gameController.js
+│   └── systemController.js
+├── data
+│   └── games.js
+├── middleware
+│   ├── errorHandler.js
+│   ├── notFound.js
+│   └── validateGame.js
+├── routes
+│   ├── gameRoutes.js
+│   └── systemRoutes.js
+├── node_modules
+├── .env
+├── .env.example
+├── app.js
+├── package-lock.json
+├── package.json
+└── server.js
+```
+
+---
+
+# 🔄 Part 22: Understand the Complete Startup Flow
+
+When you run:
+
+```bash
+npm run dev
+```
+
+Node starts:
+
+```text
+server.js
+```
+
+Then the following happens:
+
+```text
+server.js
+   ->
+Loads .env
+   ->
+Imports app.js
+   ->
+app.js creates Express
+   ->
+app.js imports routes
+   ->
+Routes import controllers
+   ->
+Controllers import data
+   ->
+app.js registers middleware
+   ->
+server.js imports httpsConfig.js
+   ->
+httpsConfig.js reads certificates
+   ->
+server.js creates HTTPS server
+   ->
+Server begins listening
+```
+
+---
+
+# 📥 Part 23: Understand a GET Request
+
+For:
+
+```text
+GET /games
+```
+
+the request flow is:
+
+```text
+Postman
+   ->
+HTTPS server
+   ->
+app.js
+   ->
+app.use("/games", gameRoutes)
+   ->
+gameRoutes.js
+   ->
+router.get("/", getAllGames)
+   ->
+gameController.js
+   ->
+getAllGames
+   ->
+games.js
+   ->
+JSON response
+```
+
+The files communicate as follows:
+
+```text
+app.js imports gameRoutes.js
+
+gameRoutes.js imports gameController.js
+
+gameController.js imports games.js
+```
+
+---
+
+# 📥 Part 24: Understand a POST Request
+
+For:
+
+```text
+POST /games
+```
+
+the request flow is:
+
+```text
+Postman
+   ->
+HTTPS server
+   ->
+app.js
+   ->
+express.json()
+   ->
+gameRoutes.js
+   ->
+validateGame.js
+   ->
+createGame
+   ->
+games.js
+   ->
+JSON response
+```
+
+The detailed flow is:
+
+```text
+Postman sends JSON
+        ->
+express.json() converts JSON into req.body
+        ->
+validateGame reads req.body
+        ->
+validateGame cleans and checks the data
+        ->
+validateGame stores req.validatedGame
+        ->
+validateGame calls next()
+        ->
+createGame reads req.validatedGame
+        ->
+createGame adds a new object to games
+        ->
+Controller sends 201 response
+```
+
+---
+
+# ❌ Part 25: Understand an Invalid POST Request
+
+When the data is invalid:
+
+```text
+POST /games
+   ->
+validateGame
+   ->
+Validation fails
+   ->
+400 response
+```
+
+The controller does not run because the middleware does not call:
+
+```javascript
+next();
+```
+
+---
+
+# ❓ Part 26: Understand an Invalid Route
+
+For:
+
+```text
+GET /invalid-route
+```
+
+the flow is:
+
+```text
+HTTPS server
+   ->
+app.js
+   ->
+System routes checked
+   ->
+Game routes checked
+   ->
+No route matched
+   ->
+notFound.js
+   ->
+404 response
+```
+
+This is why `notFound` must be registered after all valid routes.
+
+---
+
+# ⚠️ Part 27: Understand an Unexpected Error
+
+When a controller or route passes an error using:
+
+```javascript
+next(error);
+```
+
+the flow becomes:
+
+```text
+Route or controller
+   ->
+next(error)
+   ->
+Express skips normal middleware
+   ->
+errorHandler.js
+   ->
+Controlled error response
+```
+
+The error handler prevents the application from returning uncontrolled technical information to users.
+
+---
+
+# 📦 Part 28: CommonJS Communication Summary
+
+## Export one value
+
+```javascript
+module.exports = games;
+```
+
+Import it:
+
+```javascript
+const games =
+    require("../data/games");
+```
+
+## Export several functions
+
+```javascript
+module.exports = {
+    getAllGames,
+    getGameById,
+    createGame
+};
+```
+
+Import selected functions:
+
+```javascript
+const {
+    getAllGames,
+    getGameById,
+    createGame
+} = require("../controllers/gameController");
+```
+
+## Relative paths
+
+From:
+
+```text
+routes/gameRoutes.js
+```
+
+to:
+
+```text
+controllers/gameController.js
+```
+
+use:
+
+```javascript
+require("../controllers/gameController");
+```
+
+`..` means:
+
+```text
+Move up one folder
+```
+
+---
+
+# 🌍 Part 29: Review the Environment Files
+
+The `.env` file should contain:
 
 ```env
 HTTPS_PORT=4000
@@ -1341,7 +2575,7 @@ SSL_KEY_PATH=certificates/privatekey.pem
 SSL_CERT_PATH=certificates/certificate.pem
 ```
 
-Your `backend/.env.example` should contain the same variable names:
+The `.env.example` file should contain the same variable names:
 
 ```env
 HTTPS_PORT=4000
@@ -1351,15 +2585,13 @@ SSL_KEY_PATH=certificates/privatekey.pem
 SSL_CERT_PATH=certificates/certificate.pem
 ```
 
-The `.env` file should not be committed to GitHub.
-
-The `.env.example` file should be committed.
+The real `.env` file must not be committed.
 
 ---
 
-# 🚫 Part 18: Review .gitignore
+# 🚫 Part 30: Review `.gitignore`
 
-The `.gitignore` in the main `GameVault` folder should contain:
+The project `.gitignore` should contain:
 
 ```gitignore
 backend/node_modules/
@@ -1370,7 +2602,7 @@ frontend/node_modules/
 frontend/.env
 ```
 
-The following source folders must not be ignored:
+Do not ignore:
 
 ```text
 backend/config
@@ -1380,23 +2612,19 @@ backend/middleware
 backend/routes
 ```
 
+These contain source code and must be committed.
+
 ---
 
-# ▶️ Part 19: Start the Refactored Backend
+# ▶️ Part 31: Start the Refactored Backend
 
-Confirm that the terminal is inside:
-
-```text
-GameVault/backend
-```
-
-Start the development server:
+Run:
 
 ```bash
 npm run dev
 ```
 
-The terminal should display:
+Expected output:
 
 ```text
 GameVault API is running securely on https://localhost:4000
@@ -1416,121 +2644,22 @@ http://localhost:4000
 
 ---
 
-# 🧪 Part 20: Test the System Endpoints
+# 🧪 Part 32: Test the Endpoints
 
-Test the following requests in Postman.
-
-## Root route
+Test:
 
 ```text
-GET https://localhost:4000/
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-## About route
-
-```text
-GET https://localhost:4000/about
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-## Health route
-
-```text
-GET https://localhost:4000/health
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-The health response should show:
-
-```text
-protocol: HTTPS
-```
-
----
-
-# 🎯 Part 21: Test the Game Endpoints
-
-## Retrieve all games
-
-```text
-GET https://localhost:4000/games
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-## Retrieve one game
-
-```text
-GET https://localhost:4000/games/1
-```
-
-Expected status:
-
-```text
-200 OK
-```
-
-## Retrieve a missing game
-
-```text
-GET https://localhost:4000/games/999
-```
-
-Expected status:
-
-```text
-404 Not Found
-```
-
-## Use an invalid ID
-
-```text
-GET https://localhost:4000/games/test
-```
-
-Expected status:
-
-```text
-400 Bad Request
-```
-
----
-
-# 📥 Part 22: Test Valid Game Creation
-
-Send:
-
-```text
+GET  https://localhost:4000/
+GET  https://localhost:4000/about
+GET  https://localhost:4000/health
+GET  https://localhost:4000/games
+GET  https://localhost:4000/games/1
+GET  https://localhost:4000/games/999
+GET  https://localhost:4000/games/test
 POST https://localhost:4000/games
 ```
 
-Select:
-
-```text
-Body → raw → JSON
-```
-
-Use:
+Use this valid POST body:
 
 ```json
 {
@@ -1548,98 +2677,7 @@ Expected status:
 201 Created
 ```
 
-After adding the game, send:
-
-```text
-GET https://localhost:4000/games
-```
-
-The new game should appear in the array.
-
-The game will disappear when the server restarts because MongoDB has not yet been added.
-
----
-
-# 🛡️ Part 23: Test Invalid Game Creation
-
-## Missing title
-
-```json
-{
-    "genre": "Sandbox",
-    "platform": "PC",
-    "releaseYear": 2011,
-    "ageRating": "E10+"
-}
-```
-
-Expected status:
-
-```text
-400 Bad Request
-```
-
-## Invalid release year
-
-```json
-{
-    "title": "Example Game",
-    "genre": "Adventure",
-    "platform": "PC",
-    "releaseYear": "2024",
-    "ageRating": "T"
-}
-```
-
-The release year is text rather than a number.
-
-Expected status:
-
-```text
-400 Bad Request
-```
-
-## Invalid age rating
-
-```json
-{
-    "title": "Example Game",
-    "genre": "Adventure",
-    "platform": "PC",
-    "releaseYear": 2024,
-    "ageRating": "PG"
-}
-```
-
-Expected status:
-
-```text
-400 Bad Request
-```
-
-## Whitespace-only title
-
-```json
-{
-    "title": "   ",
-    "genre": "Adventure",
-    "platform": "PC",
-    "releaseYear": 2024,
-    "ageRating": "T"
-}
-```
-
-Expected status:
-
-```text
-400 Bad Request
-```
-
----
-
-# ❓ Part 24: Test the Not-Found Middleware
-
-Send:
+Test an invalid route:
 
 ```text
 GET https://localhost:4000/invalid-route
@@ -1651,195 +2689,77 @@ Expected status:
 404 Not Found
 ```
 
-Expected response:
-
-```json
-{
-    "error": "Route not found."
-}
-```
-
-This confirms that valid routes are checked before the not-found middleware runs.
-
 ---
 
-# 🔄 Part 25: Understand the Request Flow
-
-When the following request is sent:
-
-```text
-POST /games
-```
-
-the request flows through the application in this order:
-
-```text
-HTTPS server
-    ↓
-app.js
-    ↓
-JSON middleware
-    ↓
-gameRoutes.js
-    ↓
-validateGame.js
-    ↓
-gameController.js
-    ↓
-games.js
-    ↓
-JSON response
-```
-
-When an invalid route is requested:
-
-```text
-HTTPS server
-    ↓
-app.js
-    ↓
-Valid routes checked
-    ↓
-No route matched
-    ↓
-notFound.js
-    ↓
-404 response
-```
-
-When an unexpected error is passed to Express:
-
-```text
-Route or controller
-    ↓
-Error passed through Express
-    ↓
-errorHandler.js
-    ↓
-Controlled error response
-```
-
----
-
-# 📦 Part 26: Confirm the Installed Packages
-
-No additional packages are required for this section.
-
-Run:
-
-```bash
-npm list --depth=0
-```
-
-The project should still include:
-
-```text
-dotenv
-express
-nodemon
-```
-
-The following are built-in Node.js modules and do not need to be installed:
-
-```text
-https
-fs
-path
-```
-
-Do not run:
-
-```bash
-npm install https
-```
-
-Do not run:
-
-```bash
-npm install fs
-```
-
-Do not run:
-
-```bash
-npm install path
-```
-
----
-
-# ☁️ Part 27: Commit the Refactored Backend
-
-Check the files waiting to be committed:
-
-```bash
-git status
-```
-
-Confirm that the following do not appear:
-
-```text
-backend/.env
-backend/node_modules
-backend/certificates/privatekey.pem
-backend/certificates/certificate.pem
-```
-
-Stage the source files:
-
-```bash
-git add .
-```
-
-Review them again:
-
-```bash
-git status
-```
-
-Commit the changes:
-
-```bash
-git commit -m "Refactor backend into routes controllers and middleware"
-```
-
-Push the changes:
-
-```bash
-git push
-```
-
----
-
-# 🛠️ Part 28: Troubleshooting
+# 🛠️ Part 33: Common Problems
 
 ## Cannot find module
 
-An error such as:
+Example:
 
 ```text
 Cannot find module '../controllers/gameController'
 ```
 
-usually means that:
+Check:
 
-* The file is in the wrong folder.
-* The filename is incorrect.
-* The relative path is incorrect.
-* The function was not exported.
+* The file exists.
+* The filename is correct.
+* Capitalisation is correct.
+* The relative path is correct.
+* The function or object was exported.
 
-Check the project structure and spelling carefully.
+## `req.validatedGame` is undefined
 
----
+Check that the POST route is:
 
-## Certificate file cannot be found
-
-An error containing:
-
-```text
-ENOENT
+```javascript
+router.post(
+    "/",
+    validateGame,
+    createGame
+);
 ```
 
-means Node.js cannot locate a file.
+The order must be:
+
+```text
+validateGame
+createGame
+```
+
+Also confirm that the middleware contains:
+
+```javascript
+req.validatedGame = {
+    // Values
+};
+
+next();
+```
+
+## Every route returns 404
+
+Check the order inside `app.js`:
+
+```javascript
+app.use("/", systemRoutes);
+app.use("/games", gameRoutes);
+app.use(notFound);
+app.use(errorHandler);
+```
+
+`notFound` must not appear before the valid routes.
+
+## POST body is undefined
+
+Confirm that this appears before the routes:
+
+```javascript
+app.use(express.json());
+```
+
+## Certificate file cannot be found
 
 Confirm that these files exist:
 
@@ -1857,172 +2777,52 @@ SSL_CERT_PATH=certificates/certificate.pem
 
 ---
 
-## Every endpoint returns route not found
-
-The not-found middleware may be registered before the routes.
-
-The order inside `app.js` must be:
-
-```text
-JSON middleware
-System routes
-Game routes
-Not-found middleware
-Error-handling middleware
-```
-
----
-
-## POST requests do not have a body
-
-Confirm that `app.js` contains JSON request-body middleware before the routes.
-
-The order matters.
-
-JSON processing must be enabled before the game router is registered.
-
----
-
-## Valid requests never reach the controller
-
-Confirm that the validation middleware calls:
-
-```javascript
-next();
-```
-
-after all validation checks pass.
-
-Without `next()`, the request stops inside the middleware.
-
----
-
-## req.validatedGame is undefined
+# ✅ Part 34: Completion Checklist
 
 Confirm that:
 
-* `validateGame` runs before `createGame`.
-* The middleware assigns the cleaned object to `req.validatedGame`.
-* The POST route lists the functions in the correct order.
-
-The order must be:
-
-```text
-validateGame
-createGame
-```
-
----
-
-## Port 4000 is already in use
-
-Stop the existing server:
-
-```text
-Ctrl + C
-```
-
-Then start the backend again:
-
-```bash
-npm run dev
-```
-
-Alternatively, change the port in `.env`.
-
----
-
-# ✅ Part 29: Completion Checklist
-
-Before continuing, confirm that:
-
-* The backend contains a `config` folder.
-* The backend contains a `controllers` folder.
-* The backend contains a `data` folder.
-* The backend contains a `middleware` folder.
-* The backend contains a `routes` folder.
+* The original responsibilities in `server.js` were identified.
+* The games array was moved into `data/games.js`.
+* The controller functions were moved into the `controllers` folder.
+* Route definitions were moved into the `routes` folder.
+* POST validation was moved into middleware.
+* `req.validatedGame` carries data from middleware to the controller.
+* `next()` passes the request to the next function.
 * `app.js` creates and configures Express.
 * `server.js` starts the HTTPS server.
 * `httpsConfig.js` reads the key and certificate.
-* `games.js` exports one shared games array.
-* `systemController.js` handles the system responses.
-* `gameController.js` handles game operations.
-* `systemRoutes.js` defines the system endpoints.
-* `gameRoutes.js` defines the game endpoints.
-* `validateGame.js` validates incoming game data.
-* `notFound.js` handles unknown routes.
+* `notFound.js` handles invalid routes.
 * `errorHandler.js` handles unexpected errors.
+* All original endpoints still work.
 * HTTPS still works.
-* All existing LU1 endpoints still work.
-* Valid games can still be added.
-* Invalid games are rejected.
-* Invalid routes return `404`.
-* `.env` is ignored.
-* The certificate folder is ignored.
-* `node_modules` is ignored.
-* The new source files have been committed.
-* The changes have been pushed to GitHub.
+* The refactoring did not change the public API behaviour.
 
 ---
 
-# 📋 Terminal Command Summary
+# ☁️ Part 35: Commit the Refactoring
 
-Run these commands from:
-
-```text
-GameVault/backend
-```
-
-Create the folders:
-
-```bash
-mkdir config
-mkdir controllers
-mkdir data
-mkdir middleware
-mkdir routes
-```
-
-Check installed dependencies:
-
-```bash
-npm list --depth=0
-```
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-Stop the server:
-
-```text
-Ctrl + C
-```
-
-Check Git:
+Check the changed files:
 
 ```bash
 git status
 ```
 
-Stage the changes:
+Stage them:
 
 ```bash
 git add .
 ```
 
-Commit the refactoring:
+Commit:
 
 ```bash
 git commit -m "Refactor backend into routes controllers and middleware"
 ```
 
-Push the project:
+Push:
 
 ```bash
 git push
 ```
 
----
+The refactoring is complete when the application behaves exactly as it did before, but the code is now organised according to responsibility.
