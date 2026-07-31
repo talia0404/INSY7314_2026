@@ -53,29 +53,21 @@ By the end of the semester, GameVault will be a complete MERN application built 
 
 ```text
 Secure Development Foundations
-            │
-            >
+            ->
 Backend API Development
-            │
-            >
+            ->
 Authentication & Security
-            │
-            >
+            ->
 Database Integration
-            │
-            >
+            ->
 React Frontend
-            │
-            >
+            ->
 Testing & Quality Assurance
-            │
-            >
+            ->
 Docker & Containerisation
-            │
-            >
+            ->
 CI/CD Pipelines
-            │
-            >
+            ->
 Deployment & Monitoring
 ```
 
