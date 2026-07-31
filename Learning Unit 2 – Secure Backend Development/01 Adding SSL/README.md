@@ -1297,55 +1297,7 @@ The certificate used in this activity proves that the application can be configu
 
 ---
 
-# ☁️ Part 14: Commit the HTTPS Changes
-
-Check the repository:
-
-```bash
-git status
-```
-
-Confirm that the following are not listed as files waiting to be committed:
-
-```text
-backend/.env
-backend/certificates/privatekey.pem
-backend/certificates/certificate.pem
-backend/node_modules/
-```
-
-The following files may be committed:
-
-```text
-.gitignore
-ssl_research.md
-backend/.env.example
-backend/server.js
-```
-
-Stage the changes:
-
-```bash
-git add .
-```
-
-Review them again:
-
-```bash
-git status
-```
-
-Commit the changes:
-
-```bash
-git commit -m "Add HTTPS support to GameVault backend"
-```
-
-Push the project:
-
-```bash
-git push
-```
+# ☁️ Part 14: Commit and Push the HTTPS Changes
 
 After pushing, inspect the GitHub repository and confirm that the certificate folder and `.env` file are absent.
 
