@@ -2799,30 +2799,6 @@ Confirm that:
 
 ---
 
-# ☁️ Part 35: Commit the Refactoring
-
-Check the changed files:
-
-```bash
-git status
-```
-
-Stage them:
-
-```bash
-git add .
-```
-
-Commit:
-
-```bash
-git commit -m "Refactor backend into routes controllers and middleware"
-```
-
-Push:
-
-```bash
-git push
-```
+# ☁️ Part 35: Commit and Push the Refactoring
 
 The refactoring is complete when the application behaves exactly as it did before, but the code is now organised according to responsibility.
