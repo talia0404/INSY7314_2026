@@ -9,11 +9,13 @@ how many requests a client can make
 -> within a particular period
 ```
 
-<center>
+<div align="center">
 
 <img width="521" height="326" alt="image" src="https://github.com/user-attachments/assets/9985655f-5e16-4c83-a2cb-cacbdba3faa6" />
 
-</center>
+
+</div>
+
 
 
 For example, without rate limiting, someone could repeatedly send thousands of requests to:
