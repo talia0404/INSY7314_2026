@@ -1165,7 +1165,7 @@ These controls work together rather than replacing one another.
 
 ---
 
-# 🏁 Final Rate-Limiting Structure
+# Rate-Limiting Structure
 
 Your implementation should ultimately look conceptually like this:
 
