@@ -1273,7 +1273,7 @@ authentication section
 -> Login/Register
 ```
 
-This means students can see whether backend communication is working before trying authentication.
+This means you can see whether backend communication is working before trying authentication.
 
 Also correct the current error condition.
 
