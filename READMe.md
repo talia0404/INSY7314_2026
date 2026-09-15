@@ -308,15 +308,15 @@ All submitted work must be your own and comply with **The IIE Academic Integrity
 
 You'll have practical experience with:
 
-* ✅ Secure API Development
-* ✅ React Development
-* ✅ MongoDB
-* ✅ Authentication & JWT
-* ✅ Docker
-* ✅ Automated Testing
-* ✅ GitHub Actions
-* ✅ DevSecOps
-* ✅ Deployment & Monitoring
+*  Secure API Development
+*  React Development
+*  MongoDB
+*  Authentication & JWT
+*  Docker
+*  Automated Testing
+*  GitHub Actions
+*  DevSecOps
+*  Deployment & Monitoring
 
 These are the same technologies and practices used by modern software development teams.
 
