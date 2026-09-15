@@ -13,7 +13,6 @@ how many requests a client can make
 
 <img width="521" height="326" alt="image" src="https://github.com/user-attachments/assets/9985655f-5e16-4c83-a2cb-cacbdba3faa6" />
 
-
 </div>
 
 
