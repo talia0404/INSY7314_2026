@@ -1,6 +1,6 @@
 # 🔎 GameVault — Static Code Analysis, Logging & Monitoring
 
-In this section, you will improve the **security, maintainability and observability** of GameVault.
+In this section, you will improve the security, maintainability and observability of GameVault.
 
 We have already introduced automated testing and ESLint. These help us find problems before code is released. However, once an application becomes larger, we also need ways to:
 
@@ -32,7 +32,7 @@ These are different techniques, but they work together.
 
 ## 1. What is static code analysis?
 
-Static code analysis examines source code **without executing the application**.
+Static code analysis examines source code without executing the application.
 
 For example, a static analysis tool may inspect this:
 
@@ -120,7 +120,7 @@ First check whether the warning identifies a genuine problem.
 
 ESLint is useful, but we also want to inspect GameVault specifically for potential security problems.
 
-One option for this is **Semgrep**.
+One option for this is Semgrep.
 
 Semgrep analyses source code using security and code-quality rules.
 
@@ -242,7 +242,7 @@ That might look harmless, but a login request body could contain:
 
 Now the plaintext password may be written to your logs.
 
-Static analysis can help us notice patterns like these, but developers still need to understand **why** the pattern may be unsafe.
+Static analysis can help us notice patterns like these, but developers still need to understand why the pattern may be unsafe.
 
 ---
 
@@ -439,7 +439,7 @@ failed login
 
 However, logging must be done carefully.
 
-Logs should **not** contain:
+Logs should not contain:
 
 ```text
 passwords
@@ -457,7 +457,7 @@ A log file can itself become a security problem if sensitive information is writ
 
 # 📦 Step 07 — Install Winston
 
-For GameVault, we can use **Winston** for application logging.
+For GameVault, we can use Winston for application logging.
 
 Open:
 
@@ -804,7 +804,7 @@ Notice that the response sent to the user is controlled:
 }
 ```
 
-We do **not** return:
+We do not return:
 
 ```javascript
 err.stack
@@ -931,7 +931,7 @@ backend
 └── logs
 ```
 
-You should **not normally commit generated log files**.
+You should not normally commit generated log files.
 
 Add this to:
 
@@ -1419,7 +1419,7 @@ The important idea is that operational information should be treated as applicat
 
 # 📉 Step 23 — Prometheus
 
-A common monitoring tool is **Prometheus**.
+A common monitoring tool is Prometheus.
 
 Prometheus can periodically request the GameVault metrics endpoint.
 
@@ -1510,7 +1510,7 @@ scrape_configs:
 
 `insecure_skip_verify` is being used because our local GameVault certificate is self-signed.
 
-This is for the **local classroom environment**.
+This is for the local classroom environment.
 
 Do not treat disabling certificate verification as the normal production solution.
 
@@ -1581,7 +1581,7 @@ You should see the counter change.
 
 Prometheus collects and stores metrics.
 
-A tool such as **Grafana** can display those metrics using dashboards.
+A tool such as Grafana can display those metrics using dashboards.
 
 The relationship is:
 
@@ -1659,7 +1659,7 @@ http://localhost:3001
 
 Inside Grafana, add Prometheus as a data source.
 
-When Grafana asks for the Prometheus server URL, do **not** use:
+When Grafana asks for the Prometheus server URL, do not use:
 
 ```text
 http://localhost:9090
@@ -1852,9 +1852,9 @@ runtime
 -> monitoring
 ```
 
-Static analysis belongs naturally in CI because we want security/code-quality problems detected **before** changes progress through the pipeline.
+Static analysis belongs naturally in CI because we want security/code-quality problems detected before changes progress through the pipeline.
 
-Logging and monitoring are mainly runtime concerns because they help us understand the application **after it has started running**.
+Logging and monitoring are mainly runtime concerns because they help us understand the application after it has started running.
 
 ---
 
@@ -1990,4 +1990,4 @@ all three together
 -> easier to prevent, detect and investigate problems
 ```
 
-For GameVault, the goal is no longer only to build an application that **works**. You should also be able to check the quality of its code, understand what it is doing while it runs, and recognise when something has gone wrong.
+For GameVault, the goal is no longer only to build an application that works. You should also be able to check the quality of its code, understand what it is doing while it runs, and recognise when something has gone wrong.
