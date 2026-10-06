@@ -166,7 +166,6 @@ You'll implement:
 * GitHub Actions
 * CI/CD pipelines
 * Static code analysis
-* Automated testing
 * Logging
 * Monitoring
 * Secure deployment
